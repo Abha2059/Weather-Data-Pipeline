@@ -1,0 +1,48 @@
+# Virtual environment - don't upload Python environment
+venv/
+
+
+# Protect API key and other secrets
+.env
+.env.*
+!.env.example
+.env.local
+
+
+# Unnecessary temporary files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+# Original downloaded/input data
+data/raw/
+
+# Generated/cleaned data
+data/processed/
+
+# Power BI generated data
+data/powerbi/
+
+
+# We don't want log files in GitHub
+logs/
+*.log
+
+
+# Apache Airflow local files
+airflow/
+
+
+# macOS files
+.DS_Store
+
+
+# IDE/editor files
+.vscode/
+.idea/
+
+
+# Local MySQL database backup
+weather_data_backup.sql

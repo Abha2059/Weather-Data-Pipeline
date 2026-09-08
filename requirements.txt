@@ -1,0 +1,7 @@
+# used to connect to the WeatherAPI.
+# used to safely read your API key from .env.
+# lets Python communicate with MySQL
+requests
+python-dotenv
+mysql-connector-python
+apache-airflow==3.1.0
