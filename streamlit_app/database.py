@@ -22,20 +22,30 @@ if not logger.handlers:
 def _get_secret(key: str, default: str = "") -> str:
     """
     Safely retrieves a configuration value from Streamlit secrets or environment variables.
-    Supports both flat keys (e.g. MYSQL_HOST) and nested tables (e.g. [mysql] host).
+    Supports both flat keys and nested tables.
     """
     try:
         import streamlit as st
-        if hasattr(st, "secrets"):
+        if hasattr(st, "secrets") and st.secrets:
             if key in st.secrets:
                 return str(st.secrets[key])
-            if "mysql" in st.secrets:
-                lower_key = key.replace("MYSQL_", "").lower()
-                if lower_key in st.secrets["mysql"]:
-                    return str(st.secrets["mysql"][lower_key])
+            for sec_k in st.secrets:
+                if sec_k.lower() == key.lower():
+                    return str(st.secrets[sec_k])
+            for sec_name in st.secrets:
+                try:
+                    section = st.secrets[sec_name]
+                    if hasattr(section, "items"):
+                        for sub_k, sub_v in section.items():
+                            clean_key = key.replace("MYSQL_", "").replace("AWS_", "").lower()
+                            if sub_k.lower() in (key.lower(), clean_key):
+                                return str(sub_v)
+                except Exception:
+                    continue
     except Exception:
         pass
     return os.getenv(key, default)
+
 
 
 def get_db_config():

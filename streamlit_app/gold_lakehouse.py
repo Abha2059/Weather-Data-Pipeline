@@ -26,25 +26,29 @@ def _get_secret(key: str, default: str = "") -> str:
     """Safely retrieves a configuration value from Streamlit secrets or environment variables."""
     try:
         import streamlit as st
-        if hasattr(st, "secrets"):
+        if hasattr(st, "secrets") and st.secrets:
+            # 1. Direct top-level match
             if key in st.secrets:
                 return str(st.secrets[key])
-            for sec_k, sec_v in st.secrets.items():
+            # 2. Case-insensitive top-level match
+            for sec_k in st.secrets:
                 if sec_k.lower() == key.lower():
-                    return str(sec_v)
-            if "aws" in st.secrets and isinstance(st.secrets["aws"], dict):
-                clean_key = key.replace("AWS_", "").lower()
-                for sub_k, sub_v in st.secrets["aws"].items():
-                    if sub_k.lower() in (key.lower(), clean_key):
-                        return str(sub_v)
-            if "mysql" in st.secrets and isinstance(st.secrets["mysql"], dict):
-                clean_key = key.replace("MYSQL_", "").lower()
-                for sub_k, sub_v in st.secrets["mysql"].items():
-                    if sub_k.lower() in (key.lower(), clean_key):
-                        return str(sub_v)
+                    return str(st.secrets[sec_k])
+            # 3. Search inside any nested table/section (e.g. [mysql], [aws])
+            for sec_name in st.secrets:
+                try:
+                    section = st.secrets[sec_name]
+                    if hasattr(section, "items"):
+                        for sub_k, sub_v in section.items():
+                            clean_key = key.replace("AWS_", "").replace("MYSQL_", "").lower()
+                            if sub_k.lower() in (key.lower(), clean_key):
+                                return str(sub_v)
+                except Exception:
+                    continue
     except Exception:
         pass
     return os.getenv(key, default)
+
 
 
 def load_gold_dataset(dataset_name: str) -> pd.DataFrame:
