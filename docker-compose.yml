@@ -1,0 +1,54 @@
+services:
+  airflow:
+    container_name: weather_airflow
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - AIRFLOW__API_AUTH__JWT_ISSUER=airflow
+    volumes:
+      - ./dags:/app/dags
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ~/.aws:/root/.aws:ro
+      - airflow_metadata:/app/airflow
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - weather_pipeline_net
+
+  streamlit:
+    container_name: weather_streamlit
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./streamlit_app:/app/streamlit_app
+      - ./src:/app/src
+      - ./data:/app/data
+      - ~/.aws:/root/.aws:ro
+    restart: unless-stopped
+    networks:
+      - weather_pipeline_net
+
+volumes:
+  airflow_metadata:
+    name: weather_airflow_metadata
+
+networks:
+  weather_pipeline_net:
+    name: weather_pipeline_network
+    driver: bridge

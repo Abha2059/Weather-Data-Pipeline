@@ -1,0 +1,47 @@
+FROM python:3.11-slim
+
+LABEL maintainer="Abhay Kumar"
+LABEL description="Apache Airflow 3.1.0 orchestrator with PySpark 4.2.0 and OpenJDK 17"
+
+# Install system dependencies including OpenJDK JRE for PySpark operations
+RUN apt-get update && \
+    (apt-get install -y --no-install-recommends default-jre-headless curl procps || \
+     apt-get install -y --no-install-recommends openjdk-21-jre-headless curl procps) && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Configure architecture-independent JAVA_HOME symlink
+RUN JAVA_DETECTED=$(find /usr/lib/jvm -maxdepth 1 \( -name "*openjdk*" -o -name "*java*" \) | head -n 1) && \
+    ln -s "$JAVA_DETECTED" /usr/lib/jvm/java-default
+
+ENV JAVA_HOME=/usr/lib/jvm/java-default
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# Airflow and Python runtime configuration
+ENV AIRFLOW_HOME=/app/airflow
+ENV AIRFLOW__CORE__DAGS_FOLDER=/app/dags
+ENV AIRFLOW__CORE__LOAD_EXAMPLES=False
+ENV PYTHONPATH=/app:/app/src
+ENV PYTHONUNBUFFERED=1
+ENV AIRFLOW__API_AUTH__JWT_ISSUER=airflow
+
+WORKDIR /app
+
+# Install Python requirements
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /app/requirements.txt
+
+# Create runtime and data staging directories
+RUN mkdir -p /app/airflow /app/data/raw /app/data/processed /app/data/powerbi /app/logs
+
+# Copy application source code and Airflow DAGs
+COPY src/ /app/src/
+COPY dags/ /app/dags/
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD curl -f http://localhost:8080/ || exit 1
+
+CMD ["airflow", "standalone"]

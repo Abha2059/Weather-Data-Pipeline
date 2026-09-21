@@ -7,6 +7,7 @@ venv/
 .env.*
 !.env.example
 .env.local
+.streamlit/secrets.toml
 
 
 # Unnecessary temporary files
@@ -42,7 +43,19 @@ airflow/
 # IDE/editor files
 .vscode/
 .idea/
+pyrightconfig.json
 
 
 # Local MySQL database backup
 weather_data_backup.sql
+
+# Historical Big Data and Parquet
+data/historical/
+data/processed/weather_parquet/
+*.parquet
+.spark-staging*
+.metastore_db
+derby.log
+
+# AWS local config
+.aws/

@@ -12,3 +12,17 @@ WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")      #This stores the API key fro
 
 if not WEATHER_API_KEY:
     raise ValueError("WEATHER_API_KEY is not set in the .env file")
+
+# AWS S3 Configuration
+AWS_REGION = os.getenv("AWS_REGION", "ap-south-1")
+AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET", "weather-data-pipeline-abhay")
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_SESSION_TOKEN = os.getenv("AWS_SESSION_TOKEN")
+
+# Database Configuration (Local MySQL and AWS RDS)
+MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
+MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))
+MYSQL_USER = os.getenv("MYSQL_USER", "root")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
+MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "weather_db")

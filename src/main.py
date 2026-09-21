@@ -79,6 +79,19 @@ def run_main():                                                             #Thi
         )
         return
 
+    # Data Lake Processing
+    logger.info("STEP 6: Processing Data Lake with PySpark (Silver & Gold Parquet)")
+
+    try:
+        from spark_processing import run_spark_pipeline
+        run_spark_pipeline()
+        logger.info("Data Lake PySpark processing completed")
+
+    except Exception as error:
+        logger.error(
+            f"Data Lake PySpark processing failed: {error}"
+        )
+
     logger.info("==============================")
     logger.info("WEATHER ETL PIPELINE COMPLETED")
     logger.info("==============================")

@@ -1,0 +1,36 @@
+# Git and IDE files
+.git/
+.gitignore
+.DS_Store
+.vscode/
+.idea/
+pyrightconfig.json
+
+# Environment variables and secrets
+.env
+.env.*
+.aws/
+
+# Python virtual environment and bytecode
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local runtime data and staging
+data/raw/
+data/processed/
+data/powerbi/
+data/historical/
+*.parquet
+
+# Airflow runtime metadata and local database
+airflow/
+logs/
+*.log
+
+# Spark temporary and staging directories
+.spark-staging*
+.metastore_db
+derby.log

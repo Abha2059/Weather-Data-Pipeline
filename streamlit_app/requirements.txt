@@ -1,0 +1,10 @@
+# Streamlit Community Cloud Dependencies
+# Lightweight requirements excluding heavy pipeline orchestrators (Airflow, PySpark)
+
+streamlit>=1.35.0
+pandas>=2.0.0
+plotly>=5.18.0
+mysql-connector-python>=8.0.0
+pyarrow>=14.0.0
+python-dotenv>=1.0.0
+boto3>=1.34.0

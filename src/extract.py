@@ -57,6 +57,12 @@ def save_raw_data(city, data):
 
     print(f"Saved raw data: {file_path}")
 
+    try:
+        from s3_utils import upload_json_to_bronze
+        upload_json_to_bronze(city, data, today)
+    except Exception as s3_err:
+        pass
+
 
 if __name__ == "__main__":
 

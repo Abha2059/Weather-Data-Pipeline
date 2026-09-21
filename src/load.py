@@ -13,16 +13,24 @@ def connect_to_database():                          # Connect Python to our MySQ
     """
     Connect to MySQL database.
     """
+    host = os.getenv("MYSQL_HOST", "localhost")
+    port = int(os.getenv("MYSQL_PORT", 3306))
+    user = os.getenv("MYSQL_USER", "root")
+    password = os.getenv("MYSQL_PASSWORD", "")
+    database = os.getenv("MYSQL_DATABASE", "weather_db")
 
-    connection = mysql.connector.connect(
-    host=os.getenv("MYSQL_HOST"),
-    port=int(os.getenv("MYSQL_PORT", 3306)),
-    user=os.getenv("MYSQL_USER"),
-    password=os.getenv("MYSQL_PASSWORD"),
-    database=os.getenv("MYSQL_DATABASE")
-)
-
-    return connection
+    try:
+        connection = mysql.connector.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            database=database
+        )
+        return connection
+    except mysql.connector.Error as err:
+        print(f"Error connecting to MySQL database at {host}:{port}: {err}")
+        raise
 
 
 def load_weather_data():
@@ -40,80 +48,92 @@ def load_weather_data():
     with open(input_file, "r") as file:
         weather_data = json.load(file)                          # Convert JSON to Python data
 
-    connection = connect_to_database()                          #  Again Connect to MySQL after return previously.
+    connection = None
+    cursor = None
 
-    cursor = connection.cursor()                                # A cursor allows Python to send SQL commands to MySQL
+    try:
+        connection = connect_to_database()                          #  Again Connect to MySQL after return previously.
 
-    # SQL INSERT query
-    insert_query = """
-        INSERT IGNORE INTO weather_data (
-            city,
-            country,
-            latitude,
-            longitude,
-            temperature,
-            feels_like,
-            humidity,
-            pressure,
-            wind_speed,
-            precipitation_1h,
-            weather_condition,
-            weather_description,
-            timestamp,
-            date_time,
-            temperature_category,
-            weather_date
-        )
-        VALUES (
-            %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s, %s, %s, %s
-        )
-    """
- 
-    inserted_count = 0
-    skipped_count = 0
+        cursor = connection.cursor()                                # A cursor allows Python to send SQL commands to MySQL
 
-    # Insert each weather record
-    for record in weather_data:
+        # SQL INSERT query
+        insert_query = """
+            INSERT IGNORE INTO weather_data (
+                city,
+                country,
+                latitude,
+                longitude,
+                temperature,
+                feels_like,
+                humidity,
+                pressure,
+                wind_speed,
+                precipitation_1h,
+                weather_condition,
+                weather_description,
+                timestamp,
+                date_time,
+                temperature_category,
+                weather_date
+            )
+            VALUES (
+                %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+        """
+     
+        inserted_count = 0
+        skipped_count = 0
 
-        values = (
-            record.get("city"),
-            record.get("country"),
-            record.get("latitude"),
-            record.get("longitude"),
-            record.get("temperature"),
-            record.get("feels_like"),
-            record.get("humidity"),
-            record.get("pressure"),
-            record.get("wind_speed"),
-            record.get("precipitation_1h"),
-            record.get("weather_condition"),
-            record.get("weather_description"),
-            record.get("timestamp"),
-            record.get("date_time"),
-            record.get("temperature_category"),
-            record.get("weather_date")
-        )
+        # Insert each weather record
+        for record in weather_data:
 
-        cursor.execute(insert_query, values)                        #Python takes insert_query , values and send them to MySQL.
+            values = (
+                record.get("city"),
+                record.get("country"),
+                record.get("latitude"),
+                record.get("longitude"),
+                record.get("temperature"),
+                record.get("feels_like"),
+                record.get("humidity"),
+                record.get("pressure"),
+                record.get("wind_speed"),
+                record.get("precipitation_1h"),
+                record.get("weather_condition"),
+                record.get("weather_description"),
+                record.get("timestamp"),
+                record.get("date_time"),
+                record.get("temperature_category"),
+                record.get("weather_date")
+            )
 
-        if cursor.rowcount == 1:
-            inserted_count += 1
-        else:
-            skipped_count += 1
+            cursor.execute(insert_query, values)                        #Python takes insert_query , values and send them to MySQL.
 
-    connection.commit()                                             #Save these INSERT operations permanently.
+            if cursor.rowcount == 1:
+                inserted_count += 1
+            else:
+                skipped_count += 1
 
-    print("==============================")
-    print("DATABASE LOAD SUMMARY")
-    print("==============================")
-    print(f"Records received: {len(weather_data)}")
-    print(f"Records inserted: {inserted_count}")
-    print(f"Records skipped: {skipped_count}")
+        connection.commit()                                             #Save these INSERT operations permanently.
 
-    # Close connection
-    cursor.close()
-    connection.close()
+        print("==============================")
+        print("DATABASE LOAD SUMMARY")
+        print("==============================")
+        print(f"Records received: {len(weather_data)}")
+        print(f"Records inserted: {inserted_count}")
+        print(f"Records skipped: {skipped_count}")
+
+    except Exception as error:
+        if connection and connection.is_connected():
+            connection.rollback()
+        print(f"Database operation failed: {error}")
+        raise
+    finally:
+        # Close connection
+        if cursor:
+            cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
 
 
 if __name__ == "__main__":
