@@ -20,12 +20,28 @@ GOLD_DATASET_NAMES = [
 ]
 
 
+import io
+
 def _get_secret(key: str, default: str = "") -> str:
     """Safely retrieves a configuration value from Streamlit secrets or environment variables."""
     try:
         import streamlit as st
-        if hasattr(st, "secrets") and key in st.secrets:
-            return str(st.secrets[key])
+        if hasattr(st, "secrets"):
+            if key in st.secrets:
+                return str(st.secrets[key])
+            for sec_k, sec_v in st.secrets.items():
+                if sec_k.lower() == key.lower():
+                    return str(sec_v)
+            if "aws" in st.secrets and isinstance(st.secrets["aws"], dict):
+                clean_key = key.replace("AWS_", "").lower()
+                for sub_k, sub_v in st.secrets["aws"].items():
+                    if sub_k.lower() in (key.lower(), clean_key):
+                        return str(sub_v)
+            if "mysql" in st.secrets and isinstance(st.secrets["mysql"], dict):
+                clean_key = key.replace("MYSQL_", "").lower()
+                for sub_k, sub_v in st.secrets["mysql"].items():
+                    if sub_k.lower() in (key.lower(), clean_key):
+                        return str(sub_v)
     except Exception:
         pass
     return os.getenv(key, default)
@@ -50,7 +66,7 @@ def load_gold_dataset(dataset_name: str) -> pd.DataFrame:
             logger.warning(f"Error reading local Gold dataset {dataset_name}: {err}")
 
     # 2. Attempt reading from AWS S3 via boto3 if configured
-    bucket_name = _get_secret("AWS_S3_BUCKET")
+    bucket_name = _get_secret("AWS_S3_BUCKET", "weather-data-pipeline-abhay-699258776334")
     if bucket_name:
         try:
             import boto3
@@ -59,9 +75,15 @@ def load_gold_dataset(dataset_name: str) -> pd.DataFrame:
             }
             aws_access_key = _get_secret("AWS_ACCESS_KEY_ID")
             aws_secret_key = _get_secret("AWS_SECRET_ACCESS_KEY")
+            aws_session_token = _get_secret("AWS_SESSION_TOKEN")
             if aws_access_key and aws_secret_key:
                 client_kwargs["aws_access_key_id"] = aws_access_key
                 client_kwargs["aws_secret_access_key"] = aws_secret_key
+                os.environ["AWS_ACCESS_KEY_ID"] = aws_access_key
+                os.environ["AWS_SECRET_ACCESS_KEY"] = aws_secret_key
+            if aws_session_token:
+                client_kwargs["aws_session_token"] = aws_session_token
+                os.environ["AWS_SESSION_TOKEN"] = aws_session_token
 
             s3_client = boto3.client("s3", **client_kwargs)
             s3_prefix = f"gold/weather/{dataset_name}/"
@@ -73,8 +95,9 @@ def load_gold_dataset(dataset_name: str) -> pd.DataFrame:
 
             dfs = []
             for key in parquet_keys:
-                s3_uri = f"s3://{bucket_name}/{key}"
-                part_df = pd.read_parquet(s3_uri)
+                obj = s3_client.get_object(Bucket=bucket_name, Key=key)
+                buffer = io.BytesIO(obj["Body"].read())
+                part_df = pd.read_parquet(buffer)
                 dfs.append(part_df)
 
             if dfs:
