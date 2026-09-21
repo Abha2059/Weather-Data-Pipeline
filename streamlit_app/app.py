@@ -303,7 +303,12 @@ def main():
             st.dataframe(selected_gold_df, use_container_width=True, hide_index=True)
             st.caption(f"Loaded {len(selected_gold_df)} rows from Gold dataset: `{gold_choice}` (Parquet format)")
         else:
-            st.info("No local or S3 Gold Parquet datasets found. Run `python src/spark_processing.py` to generate Gold datasets.")
+            diag = gold_lakehouse.get_gold_diagnostics()
+            if not diag["has_access_key"] or not diag["has_secret_key"]:
+                st.info("AWS credentials not detected in Streamlit Secrets. Please ensure `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are saved in Settings > Secrets and reboot the app.")
+            else:
+                st.info(f"Targeting S3 bucket: `{diag['bucket']}` ({diag['region']}). If recently updated, please reboot the app from the bottom-right menu.")
+
 
     # Tab 7: Detailed Records Viewer
     with tab7:

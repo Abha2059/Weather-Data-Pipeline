@@ -118,3 +118,18 @@ def get_all_gold_summaries() -> dict[str, pd.DataFrame]:
         if not df.empty:
             results[name] = df
     return results
+
+
+def get_gold_diagnostics() -> dict:
+    """Returns diagnostic information regarding AWS S3 and credentials state."""
+    bucket = _get_secret("AWS_S3_BUCKET", "weather-data-pipeline-abhay-699258776334")
+    has_key = bool(_get_secret("AWS_ACCESS_KEY_ID"))
+    has_secret = bool(_get_secret("AWS_SECRET_ACCESS_KEY"))
+    region = _get_secret("AWS_DEFAULT_REGION", _get_secret("AWS_REGION", "ap-south-1"))
+    return {
+        "bucket": bucket,
+        "has_access_key": has_key,
+        "has_secret_key": has_secret,
+        "region": region,
+    }
+
