@@ -32,7 +32,7 @@ services:
       context: .
       dockerfile: Dockerfile.streamlit
     ports:
-      - "8501:8501"
+      - "8502:8501"
     env_file:
       - .env
     volumes:
