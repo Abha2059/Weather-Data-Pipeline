@@ -1,5 +1,11 @@
 import os
 import sys
+
+# Critical fix for macOS fork safety and proxy resolution in Airflow workers
+os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
+os.environ["no_proxy"] = "*"
+os.environ["NO_PROXY"] = "*"
+
 import pendulum
 from pathlib import Path
 from datetime import timedelta
@@ -13,13 +19,19 @@ except ImportError:
     from airflow.providers.standard.operators.empty import EmptyOperator    # type: ignore
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent                       # Path(__file__)-This gives the path of the current file (weather_pipeline_dag.py). resolve()- This converts the path to an absolute path. parent.parent- This goes up two levels in the directory structure to reach the project root.
-SRC_PATH = PROJECT_ROOT / "src"                                             # Gives- Weather-Data-Pipeline/src/
 
-sys.path.insert(0, str(SRC_PATH))                                           # Tell Python to look inside your src folder when importing your project files
-#                                                                           # str(SRC_PATH)- Convert the path into a normal Python string
-#                                                                            
-#                                                                           #sys.path - It contains the locations where Python searches for modules(import).                                    
+# Ensure project root and src are on sys.path regardless of where DAG is loaded from
+WEATHER_REPO_ROOT = Path("/Users/abhaykumar/Weather-Data-Pipeline")
+if not (WEATHER_REPO_ROOT / "src").exists():
+    WEATHER_REPO_ROOT = Path(__file__).resolve().parent.parent
+
+PROJECT_ROOT = WEATHER_REPO_ROOT
+SRC_PATH = PROJECT_ROOT / "src"
+
+if str(SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(SRC_PATH))
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 # Task 1: Extract weather data from OpenWeather API

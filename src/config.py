@@ -1,6 +1,13 @@
 import os     #Allows Python to work with environment variables.
+
+# Critical macOS fork safety settings for background processes and Airflow workers
+os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
+os.environ["no_proxy"] = "*"
+os.environ["NO_PROXY"] = "*"
+
 from dotenv import load_dotenv     #Imports the function that reads our .env file.
 from pathlib import Path
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ENV_FILE = PROJECT_ROOT / ".env"
