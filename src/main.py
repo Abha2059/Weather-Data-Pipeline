@@ -67,17 +67,16 @@ def run_main():                                                             #Thi
         return
 
     #  Loading
-    logger.info("STEP 5: Loading data into MySQL")
+    logger.info("STEP 5: Loading data into MySQL (Optional)")
 
     try:
         load_weather_data()
         logger.info("Database loading completed")
 
     except Exception as error:
-        logger.error(
-            f"Database loading failed: {error}"
+        logger.warning(
+            f"Optional MySQL database loading skipped: {error}"
         )
-        return
 
     # Data Lake Processing
     logger.info("STEP 6: Processing Data Lake with PySpark (Silver & Gold Parquet)")

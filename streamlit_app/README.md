@@ -1,6 +1,6 @@
-# Streamlit Weather Analytics Dashboard
+# Streamlit Weather Analytics Dashboard (Serverless S3 Lakehouse)
 
-An interactive dashboard for the **Weather Data Aggregation Pipeline**, visualizing live weather observations and historical metrics stored in **AWS RDS MySQL** and **AWS S3 Gold Data Lake**.
+An interactive, high-performance analytics dashboard for the **Weather Data Aggregation Pipeline**, visualizing live weather observations and historical metrics directly from **AWS S3 Silver & Gold Data Lakehouse** (Parquet format) — 100% serverless with zero database maintenance.
 
 ---
 
@@ -14,13 +14,12 @@ pip install -r requirements.txt
 ```
 
 ### 2. Environment Variables
-Verify your `.env` file contains valid AWS RDS MySQL connection details:
+Verify your `.env` file contains your AWS S3 bucket and credentials:
 ```ini
-MYSQL_HOST=weather-db.c9qcuiuy6x3m.ap-south-1.rds.amazonaws.com
-MYSQL_PORT=3306
-MYSQL_USER=admin
-MYSQL_PASSWORD=YourPassword
-MYSQL_DATABASE=weather_db
+AWS_DEFAULT_REGION=ap-south-1
+AWS_S3_BUCKET=weather-data-pipeline-abhay-699258776334
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
 ```
 
 ### 3. Launch the Dashboard
@@ -36,7 +35,8 @@ The application will open automatically in your browser at:
 
 ## 📊 Dashboard Features
 
-- **Sidebar Filters**: Multi-city selector, date range bounds from the database, weather conditions, and instant cache refresh.
+- **Sidebar Filters**: Multi-city selector, date range bounds, weather conditions, and instant cache refresh.
+- **Serverless In-Memory Engine**: Concurrent multithreaded downloads from S3 with sub-second TTL caching.
 - **KPI Summary**: Average Temperature, Maximum/Minimum Extremes, Humidity, Wind Speed, and 1-Hour Precipitation.
 - **Analytics Tabs**:
   1. **Temperature Trends**: Daily progression line charts, city extremes comparison, and weather condition distributions.
@@ -44,14 +44,14 @@ The application will open automatically in your browser at:
   3. **Precipitation**: Cumulative 1-hour recorded precipitation by city.
   4. **City Comparison**: Cross-city weather comparison matrix.
   5. **Monthly Trends**: Aggregated metrics grouped by `YYYY-MM`.
-  6. **S3 Gold Lakehouse**: PySpark Gold Parquet datasets directly from the Data Lake.
+  6. **S3 Gold Lakehouse**: PySpark Gold Parquet analytical datasets directly from AWS S3.
   7. **Detailed Records**: Filtered tabular data with CSV download capability.
 
 ---
 
 ## ☁️ Deploying to Streamlit Community Cloud
 
-To deploy this dashboard publicly with zero server maintenance:
+To deploy this dashboard publicly with zero database costs and zero server maintenance:
 
 1. **Push Changes to GitHub**:
    Ensure all changes are committed and pushed to your `main` branch.
@@ -63,22 +63,16 @@ To deploy this dashboard publicly with zero server maintenance:
    - **Repository**: `Abha2059/Weather-Data-Pipeline`
    - **Branch**: `main`
    - **Main file path**: `streamlit_app/app.py`
-   - **App URL**: `my-weather-dashboard` (or your chosen subdomain)
+   - **App URL**: Choose your preferred subdomain
 
 4. **Configure Secrets**:
    Click **Advanced settings...** $\rightarrow$ **Secrets** and paste:
    ```toml
-   MYSQL_HOST = "weather-db.c9qcuiuy6x3m.ap-south-1.rds.amazonaws.com"
-   MYSQL_PORT = 3306
-   MYSQL_USER = "admin"
-   MYSQL_PASSWORD = "your_secure_rds_password"
-   MYSQL_DATABASE = "weather_db"
-
-   # Optional S3 Lakehouse access
    AWS_DEFAULT_REGION = "ap-south-1"
    AWS_S3_BUCKET = "weather-data-pipeline-abhay-699258776334"
+   AWS_ACCESS_KEY_ID = "your_access_key_id"
+   AWS_SECRET_ACCESS_KEY = "your_secret_access_key"
    ```
 
 5. **Deploy**:
    Click **Deploy!** Your public URL will be live in ~45 seconds.
-

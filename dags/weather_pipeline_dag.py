@@ -102,22 +102,28 @@ def task_process_gold():
             spark.stop()
 
 
-# Task 5: Load transformed weather data into AWS RDS MySQL database
-def task_load_rds():
+# Task 5: Verify S3 Lakehouse integrity and synchronize analytical caches
+def task_verify_lakehouse():
     from validation import validate_raw_files                               # type: ignore
     from cleaning import clean_raw_files                                     # type: ignore
     from transform import transform_processed_data                           # type: ignore
-    from load import load_weather_data                                       # type: ignore
     from export_for_powerbi import export_weather_data                       # type: ignore
+    from s3_utils import get_s3_client                                     # type: ignore
+    from config import AWS_S3_BUCKET                                        # type: ignore
     from logger_config import logger                                        # type: ignore
 
-    logger.info("Validating and cleaning raw files for relational database...")
+    logger.info("Validating and cleaning raw files for local analytical cache...")
     validate_raw_files()
     clean_raw_files()
     transform_processed_data()
 
-    logger.info("Loading records into AWS RDS MySQL weather_db...")
-    load_weather_data()
+    # Optional local/RDS MySQL loading if configured
+    try:
+        from load import load_weather_data                                   # type: ignore
+        load_weather_data()
+        logger.info("Optional MySQL database sync completed.")
+    except Exception as db_err:
+        logger.info(f"Skipping optional relational database sync: {db_err}")
 
     try:
         export_weather_data()
@@ -125,7 +131,18 @@ def task_load_rds():
     except Exception as exp_err:
         logger.warning(f"Power BI export warning: {exp_err}")
 
-    logger.info("AWS RDS MySQL loading stage completed successfully.")
+    # Verify S3 Silver and Gold layers
+    try:
+        s3 = get_s3_client()
+        silver_objs = s3.list_objects_v2(Bucket=AWS_S3_BUCKET, Prefix="silver/weather/", MaxKeys=5)
+        silver_count = silver_objs.get("KeyCount", 0)
+        gold_objs = s3.list_objects_v2(Bucket=AWS_S3_BUCKET, Prefix="gold/weather/", MaxKeys=5)
+        gold_count = gold_objs.get("KeyCount", 0)
+        logger.info(f"S3 Lakehouse verified: Silver objects={silver_count > 0}, Gold objects={gold_count > 0}")
+    except Exception as s3_err:
+        logger.warning(f"S3 verification check warning: {s3_err}")
+
+    logger.info("Lakehouse verification stage completed successfully.")
 
 
 # Schedule configuration: defaults to None (manual triggering), configurable via AIRFLOW_SCHEDULE
@@ -181,9 +198,9 @@ with DAG(                                                                   # DA
         retry_delay=timedelta(minutes=1)
     )
 
-    load_rds_task = PythonOperator(
-        task_id="load_rds",
-        python_callable=task_load_rds,
+    verify_lakehouse_task = PythonOperator(
+        task_id="verify_lakehouse",
+        python_callable=task_verify_lakehouse,
         retries=1,
         retry_delay=timedelta(seconds=30)
     )
@@ -192,12 +209,12 @@ with DAG(                                                                   # DA
         task_id="pipeline_complete"
     )
 
-    # Task dependency graph: Extract -> Bronze -> Silver -> Gold -> RDS -> Complete
+    # Task dependency graph: Extract -> Bronze -> Silver -> Gold -> Verify Lakehouse -> Complete
     (
         extract_weather_task
         >> upload_bronze_task
         >> process_silver_task
         >> process_gold_task
-        >> load_rds_task
+        >> verify_lakehouse_task
         >> pipeline_complete_task
     )

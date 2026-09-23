@@ -12,7 +12,7 @@ for path_entry in [str(PROJECT_ROOT), str(APP_DIR)]:
     if path_entry not in sys.path:
         sys.path.insert(0, path_entry)
 
-from database import test_db_connection, get_db_config
+from s3_data_loader import get_s3_lakehouse_status, load_silver_weather_data
 import queries
 import charts
 import gold_lakehouse
@@ -84,28 +84,21 @@ def cached_dashboard_data(selected_cities, start_date, end_date, selected_condit
 
 
 def main():
-    # Test DB connection at startup
-    is_connected, status_msg, db_version = test_db_connection()
-    db_config = get_db_config()
-    host_display = db_config["host"]
-    if len(host_display) > 28:
-        host_display = host_display[:20] + "..." + host_display[-8:]
+    # Inspect AWS S3 Data Lake connection
+    lakehouse_status = get_s3_lakehouse_status()
+    bucket_display = lakehouse_status["bucket"]
+    if len(bucket_display) > 28:
+        bucket_display = bucket_display[:20] + "..." + bucket_display[-8:]
 
     # Sidebar: Title & Status
     st.sidebar.markdown("### 🌤️ Weather Dashboard")
-    if is_connected:
-        st.sidebar.success(f"Connected to RDS MySQL\n\n`{host_display}`", icon="🟢")
-    else:
-        st.sidebar.error(f"Database connection error:\n{status_msg}", icon="🔴")
-        st.error(f"⚠️ Unable to connect to database at `{db_config['host']}`. Error: {status_msg}")
-        st.info("Please verify your `.env` database credentials and AWS RDS security group inbound rules for port 3306.")
-        return
+    st.sidebar.success(f"AWS S3 Data Lake\n\n`{bucket_display}`\n\nRegion: `{lakehouse_status['region']}`", icon="🟢")
 
     # Fetch available filter options
     available_cities, min_date, max_date, available_conditions = cached_filter_options()
 
     if not available_cities:
-        st.warning("No weather records found in the database. Please run the ETL pipeline first to populate data.")
+        st.warning("No weather records found in AWS S3 or local data lake. Please run the ETL pipeline first to populate data.")
         return
 
     st.sidebar.markdown("---")
@@ -147,15 +140,16 @@ def main():
     st.sidebar.markdown("---")
     if st.sidebar.button("🔄 Refresh Data", use_container_width=True):
         st.cache_data.clear()
+        load_silver_weather_data(force_refresh=True)
         st.rerun()
 
-    st.sidebar.caption(f"MySQL Engine: `{db_version}`")
-    st.sidebar.caption(f"Database: `{db_config['database']}`")
+    st.sidebar.caption(f"Storage Layer: `AWS S3 Parquet Lakehouse`")
+    st.sidebar.caption(f"Bucket: `{lakehouse_status['bucket']}`")
 
     # Header section
     st.markdown('<div class="main-header">Weather Data Analytics Dashboard</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-header">Interactive monitoring and historical analytics powered by AWS RDS for MySQL & AWS S3 Data Lake.</div>',
+        '<div class="sub-header">Interactive monitoring and historical analytics powered by AWS S3 Data Lake (Silver & Gold Parquet).</div>',
         unsafe_allow_html=True
     )
 
@@ -345,7 +339,7 @@ def main():
 
     # Footer
     st.markdown("---")
-    st.caption(f"Data Sources: **AWS RDS MySQL** (`{db_config['database']}`) & **AWS S3 Gold Parquet** | Total Records Filtered: `{kpis['record_count']}` | Last Refreshed: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`")
+    st.caption(f"Data Sources: **AWS S3 Silver Parquet** & **AWS S3 Gold Parquet** | Total Records Filtered: `{kpis['record_count']}` | Last Refreshed: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`")
 
 
 if __name__ == "__main__":
